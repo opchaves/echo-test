@@ -80,7 +80,7 @@ export JWT="<copied token>"
 5. Run wrk against a protected route which will verify the token on every request
 
 ```sh
-# Using 15 thread; 1000 concurrent connection during 1 minute
+# Using 15 threads and 1000 concurrent connections during 1 minute
 wrk -t15 -c1000 -d60s -H 'Content-Type: application/json' \
 -H "Authorization: Bearer ${JWT}" \
 http://localhost:8080/restricted/hello
@@ -100,4 +100,4 @@ Requests/sec:  52053.16
 Transfer/sec:      8.04MB
 ```
 
-> I'm impressed! That is really cool
+> I'm impressed! That is really cool. No performance tunning has been made.
