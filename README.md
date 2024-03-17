@@ -42,6 +42,31 @@ test:
     APP_ENV=test go test ./... -count=1
 ```
 
+## Getting started
+
+1. Create a .env file, install required tools and run docker compose
+
+```sh
+cp .env.example .env
+make install-tools
+make tidy
+make docker-up
+```
+
+2. Seed the database
+
+```sh
+make db-seed
+```
+
+3. Run the dev server
+
+```sh
+air
+```
+
+Server is running on [localhost:8080](http://localhost:8080)
+
 ## Load testing locally
 
 I installed [`wrk`](https://github.com/wg/wrk) to benchmark my API locally. That is how I did:
