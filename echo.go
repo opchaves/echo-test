@@ -1,10 +1,16 @@
 package main
 
 import (
+	"context"
+	"echo-test/config"
+	"echo-test/model"
+	"echo-test/pkg/password"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -13,19 +19,38 @@ import (
 // jwtCustomClaims are custom claims extending default ones.
 // See https://github.com/golang-jwt/jwt for more examples
 type jwtCustomClaims struct {
-	Name  string `json:"name"`
-	Admin bool   `json:"admin"`
+	UserId string `json:"id"`
+	Admin  bool   `json:"admin"`
 	jwt.RegisteredClaims
 }
 
+type Server struct {
+	Db *pgxpool.Pool
+	Q  *model.Queries
+}
+
 func EchoHandler() *echo.Echo {
+	db, err := pgxpool.New(context.Background(), config.DatabaseURL)
+	if err != nil {
+		log.Fatalf("Unable to connect to database: %v\n", err)
+	}
+
+	log.Println("Connected to database")
+
+	s := &Server{
+		Db: db,
+		Q:  model.New(db),
+	}
+
 	e := echo.New()
+	e.HideBanner = true
+	e.Logger.SetLevel(config.LogLevel)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
 	// Login route
-	e.POST("/login", login)
+	e.POST("/login", s.login)
 
 	// Unauthenticated route
 	e.GET("/", accessible)
@@ -38,7 +63,7 @@ func EchoHandler() *echo.Echo {
 		NewClaimsFunc: func(c echo.Context) jwt.Claims {
 			return new(jwtCustomClaims)
 		},
-		SigningKey: []byte("secret"),
+		SigningKey: []byte(config.JwtSecret),
 	}
 	r.Use(echojwt.WithConfig(config))
 	r.GET("/hello", restricted)
@@ -46,21 +71,30 @@ func EchoHandler() *echo.Echo {
 	return e
 }
 
-func login(c echo.Context) error {
-	username := c.FormValue("username")
-	password := c.FormValue("password")
+func (s *Server) login(c echo.Context) error {
+	email := c.FormValue("email")
+	pass := c.FormValue("password")
 
-	// Throws unauthorized error
-	if username != "luara" || password != "hellen" {
+	user, err := s.Q.GetUserByEmail(context.Background(), email)
+
+	if err != nil {
+		c.Logger().Error(err)
+		return echo.ErrUnauthorized
+	}
+
+	match, err := password.Compare(user.Password, pass)
+
+	if !match || err != nil {
+		c.Logger().Warn("Password mismatch")
 		return echo.ErrUnauthorized
 	}
 
 	// Set custom claims
 	claims := &jwtCustomClaims{
-		"Luara",
-		true,
-		jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 72)),
+		UserId: user.ID.String(),
+		Admin:  true,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(config.JwtExpiry)),
 		},
 	}
 
@@ -68,7 +102,7 @@ func login(c echo.Context) error {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Generate encoded token and send it as response.
-	t, err := token.SignedString([]byte("secret"))
+	t, err := token.SignedString([]byte(config.JwtSecret))
 	if err != nil {
 		return err
 	}
@@ -85,6 +119,6 @@ func accessible(c echo.Context) error {
 func restricted(c echo.Context) error {
 	user := c.Get("user").(*jwt.Token)
 	claims := user.Claims.(*jwtCustomClaims)
-	name := claims.Name
-	return c.String(http.StatusOK, "Welcome "+name+"!")
+	id := claims.UserId
+	return c.String(http.StatusOK, "Welcome "+id+"!")
 }
