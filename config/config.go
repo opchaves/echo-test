@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -79,7 +78,8 @@ var (
 func toDuration(envVar string, defaultVal string) time.Duration {
 	val, err := time.ParseDuration(getEnv(envVar, defaultVal))
 	if err != nil {
-		log.Fatalf("Invalid value for %s: %s", envVar, err)
+		slog.Default().Error("Invalid value for env var", envVar, err)
+		os.Exit(1)
 	}
 	return val
 }
@@ -87,7 +87,8 @@ func toDuration(envVar string, defaultVal string) time.Duration {
 func toInt(envVar string, defaultVal string) int {
 	val, err := strconv.Atoi(getEnv(envVar, defaultVal))
 	if err != nil {
-		log.Fatalf("Invalid value for %s: %s", envVar, err)
+		slog.Default().Error("Invalid value for env var", envVar, err)
+		os.Exit(1)
 	}
 	return val
 }
@@ -113,7 +114,7 @@ func InitConfig() {
 
 	env = strings.ToLower(env)
 
-	log.Printf("Loading environment: %s", env)
+	slog.Default().Info("loading environment", "env", env)
 
 	loadEnvVars(env)
 }
@@ -124,7 +125,8 @@ func loadEnvVars(env string) {
 	}
 
 	if !isValidEnv(env) {
-		log.Fatalf("Invalid environment: %s", env)
+		slog.Default().Error("Invalid environment", "env", env)
+		os.Exit(1)
 	}
 
 	filename := fmt.Sprintf("%s/../.env", basepath)
@@ -132,7 +134,7 @@ func loadEnvVars(env string) {
 
 	err := godotenv.Load(filename)
 	if err != nil {
-		log.Printf("File %s not found. Using default values", filename)
+		slog.Default().Warn("File not found. Using default values", "file", filename)
 	}
 }
 

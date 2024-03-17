@@ -5,8 +5,9 @@ import (
 	"echo-test/config"
 	"echo-test/model"
 	"echo-test/pkg/password"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -33,10 +34,11 @@ type Server struct {
 func EchoHandler() *Server {
 	db, err := pgxpool.New(context.Background(), config.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %v\n", err)
+		slog.Default().Error("Unable to connect to database.", "db", config.DbName, "error", err)
+		os.Exit(1)
 	}
 
-	log.Println("Connected to database")
+	slog.Default().Info("Connected to database.", "db", config.DbName)
 
 	e := echo.New()
 
