@@ -41,3 +41,63 @@ documentation.
 test:
     APP_ENV=test go test ./... -count=1
 ```
+
+## Load testing locally
+
+I installed [`wrk`](https://github.com/wg/wrk) to benchmark my API locally. That is how I did:
+
+1. Build the binary and run it in production mode
+
+```sh
+make build-api
+make start
+```
+
+2. Seed the database
+
+```sh
+make db-seed
+```
+
+3. Login to generate a jwt token
+
+```sh
+## TODO: use application/json instead. change handler to decode JSON from body
+curl -X POST http://localhost:8080/login \
+   -H "Content-Type: application/x-www-form-urlencoded" \
+   -d "email=paulo@example.com&password=password12" 
+
+# Result
+{"token": "..."}
+```
+
+4. Copy the generated token and export an env variable
+
+```sh
+export JWT="<copied token>"
+```
+
+5. Run wrk against a protected route which will verify the token on every request
+
+```sh
+# Using 15 thread; 1000 concurrent connection during 1 minute
+wrk -t15 -c1000 -d60s -H 'Content-Type: application/json' \
+-H "Authorization: Bearer ${JWT}" \
+http://localhost:8080/restricted/hello
+```
+
+6. Result I got. My specs: M2 Pro 16GB RAM
+
+```sh
+Running 1m test @ http://localhost:8080/restricted/hello
+  15 threads and 1000 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     4.50ms    4.22ms  62.80ms   71.86%
+    Req/Sec     3.49k     1.64k    8.67k    70.98%
+  3125402 requests in 1.00m, 482.86MB read
+  Socket errors: connect 755, read 100, write 0, timeout 0
+Requests/sec:  52053.16
+Transfer/sec:      8.04MB
+```
+
+> I'm impressed! That is really cool
