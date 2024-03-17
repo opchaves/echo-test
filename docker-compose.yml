@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_ANON_ROLE: ${DB_ANON_ROLE}
+      DB_SCHEMA: ${DB_SCHEMA}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+    volumes:
+      - ./initdb:/docker-entrypoint-initdb.d
+      - db-volume:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      - backend
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
+    ports:
+      - 15432:80
+    volumes:
+      - ./db/servers.json:/pgadmin4/servers.json
+    networks:
+      - backend
+    depends_on:
+      - postgres
+
+volumes:
+  db-volume:
+
+networks:
+  backend:
+    driver: bridge

@@ -1,0 +1,10 @@
+BEGIN;
+
+DROP TABLE IF EXISTS "categories";
+DROP TABLE IF EXISTS "accounts";
+DROP TABLE IF EXISTS "tokens";
+DROP TABLE IF EXISTS "workspaces_users";
+DROP TABLE IF EXISTS "workspaces";
+DROP TABLE IF EXISTS "users";
+
+COMMIT;
