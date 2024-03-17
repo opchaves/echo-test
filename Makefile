@@ -59,7 +59,7 @@ build-web:
 ## start: start the server binary "bin/server"
 .PHONY: start
 start:
-	@./bin/server
+	APP_ENV=production ./bin/server
 
 ## docker-up: start the docker containers
 .PHONY: docker-up
