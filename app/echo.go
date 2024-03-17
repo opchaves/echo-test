@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"context"
@@ -25,11 +25,12 @@ type jwtCustomClaims struct {
 }
 
 type Server struct {
-	Db *pgxpool.Pool
-	Q  *model.Queries
+	Db  *pgxpool.Pool
+	Q   *model.Queries
+	Mux *echo.Echo
 }
 
-func EchoHandler() *echo.Echo {
+func EchoHandler() *Server {
 	db, err := pgxpool.New(context.Background(), config.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
@@ -37,12 +38,14 @@ func EchoHandler() *echo.Echo {
 
 	log.Println("Connected to database")
 
+	e := echo.New()
+
 	s := &Server{
-		Db: db,
-		Q:  model.New(db),
+		Db:  db,
+		Q:   model.New(db),
+		Mux: e,
 	}
 
-	e := echo.New()
 	e.HideBanner = true
 	e.Logger.SetLevel(config.LogLevel)
 
@@ -68,7 +71,7 @@ func EchoHandler() *echo.Echo {
 	r.Use(echojwt.WithConfig(config))
 	r.GET("/hello", restricted)
 
-	return e
+	return s
 }
 
 func (s *Server) login(c echo.Context) error {

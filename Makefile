@@ -160,4 +160,4 @@ sqlc:
 ## test: run the tests
 .PHONY: test
 test:
-	APP_ENV=test go test ./...
+	APP_ENV=test go test ./... -count=1

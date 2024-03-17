@@ -1,6 +1,7 @@
 package main
 
 import (
+	"echo-test/app"
 	"echo-test/config"
 	"fmt"
 	"log"
@@ -9,7 +10,7 @@ import (
 func main() {
 	port := fmt.Sprintf(":%s", config.Port)
 
-	e := EchoHandler()
+	e := app.EchoHandler()
 
-	log.Fatal(e.Start(port))
+	log.Fatal(e.Mux.Start(port))
 }
